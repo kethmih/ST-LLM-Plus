@@ -1,0 +1,13 @@
+numpy
+scipy
+pandas
+transformers
+torch==2.3.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+torchvision==0.18.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+torchaudio==2.3.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+torch-scatter -f https://data.pyg.org/whl/torch-2.3.1+cu118.html
+torch-sparse -f https://data.pyg.org/whl/torch-2.3.1+cu118.html
+torch-cluster -f https://data.pyg.org/whl/torch-2.3.1+cu118.html
+torch-spline-conv -f https://data.pyg.org/whl/torch-2.3.1+cu118.html
+torch-geometric
+
