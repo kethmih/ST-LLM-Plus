@@ -6,14 +6,14 @@ from transformers import GPT2Model, GPT2Tokenizer
 from torch_geometric.nn import GCNConv, GATConv
 
 class GNNRetriever(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, gnn_type='gcn'):
+    def __init__(self, input_dim, hidden_dim, output_dim, nheads, gnn_type='gcn'):
         super(GNNRetriever, self).__init__()
         if gnn_type == 'gcn':
             self.gnn1 = GCNConv(input_dim, hidden_dim)
             self.gnn2 = GCNConv(hidden_dim, output_dim)
         elif gnn_type == 'gat':
-            self.gnn1 = GATConv(input_dim, hidden_dim)
-            self.gnn2 = GATConv(hidden_dim, output_dim)
+            self.gnn1 = GATConv(input_dim, hidden_dim, heads = nheads)
+            self.gnn2 = GATConv(hidden_dim * nheads, output_dim)
         else:
             raise ValueError("Unsupported GNN type: choose 'gcn' or 'gat'")
         
@@ -121,7 +121,7 @@ class GPT4ST(nn.Module):
         self.node_emb = nn.Parameter(torch.empty(self.num_nodes, gpt_channel))
         nn.init.xavier_uniform_(self.node_emb)
 
-        self.gnn_retriever = GNNRetriever(input_dim = self.input_dim, hidden_dim=64, output_dim=1, gnn_type='gat')
+        self.gnn_retriever = GNNRetriever(input_dim = self.input_dim, hidden_dim=64, output_dim=1, nheads = 8, gnn_type='gat')
         self.in_layer = nn.Conv2d(gpt_channel*4, to_gpt_channel, kernel_size=(1, 1))        
 
         # regression
