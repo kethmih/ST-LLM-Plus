@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch_geometric
 
-from transformers import GPT2Model, GPT2Tokenizer
+from transformers import GPT2Model, GPT2Tokenizer #, BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model
 from torch_geometric.nn import GCNConv, GATConv
 
 class GNNRetriever(nn.Module):
@@ -13,7 +14,7 @@ class GNNRetriever(nn.Module):
             self.gnn2 = GCNConv(hidden_dim, output_dim)
         elif gnn_type == 'gat':
             self.gnn1 = GATConv(input_dim, hidden_dim, heads = nheads)
-            self.gnn2 = GATConv(hidden_dim * nheads, output_dim)
+            self.gnn2 = GATConv(hidden_dim*nheads, output_dim)
         else:
             raise ValueError("Unsupported GNN type: choose 'gcn' or 'gat'")
         
@@ -54,6 +55,33 @@ class TemporalEmbedding(nn.Module):
         return tem_emb
 
 
+# ########## ORGINAL #############
+# class PFA(nn.Module):
+#     def __init__(self, device="cuda:0", gpt_layers=6, U=1):
+#         super(PFA, self).__init__()
+#         self.gpt2 = GPT2Model.from_pretrained(
+#             "gpt2", output_attentions=True, output_hidden_states=True
+#         )
+#         self.gpt2.h = self.gpt2.h[:gpt_layers]
+#         self.U = U
+
+#         for layer_index, layer in enumerate(self.gpt2.h):
+#             for name, param in layer.named_parameters():
+#                 if layer_index < gpt_layers - self.U:
+#                     if "ln" in name or "wpe" in name:
+#                         param.requires_grad = True
+#                     else:
+#                         param.requires_grad = False
+#                 else:
+#                     if "mlp" in name:
+#                         param.requires_grad = False
+#                     else:
+#                         param.requires_grad = True
+
+#     def forward(self, x):
+#         return self.gpt2(inputs_embeds=x).last_hidden_state
+
+########### LORA NEW (STDLLM) ##############
 class PFA(nn.Module):
     def __init__(self, device="cuda:0", gpt_layers=6, U=1):
         super(PFA, self).__init__()
@@ -62,7 +90,19 @@ class PFA(nn.Module):
         )
         self.gpt2.h = self.gpt2.h[:gpt_layers]
         self.U = U
+        self.lora_rank = 16 #4,8
 
+        # Configure LoRA
+        self.lora_config = LoraConfig(
+            r=self.lora_rank,
+            lora_alpha=16,  # or any other hyperparameter specific to LoRA
+            lora_dropout=0.,  # if you want to add dropout to LoRA #0.05
+            target_modules=['q_attn','c_attn'],   # Apply LoRA to the attention layers only
+            bias="none"  # specify whether to train bias parameters
+        )
+        self.gpt2 = get_peft_model(self.gpt2, self.lora_config)
+
+        # Adjust parameter training requirements
         for layer_index, layer in enumerate(self.gpt2.h):
             for name, param in layer.named_parameters():
                 if layer_index < gpt_layers - self.U:
@@ -78,6 +118,207 @@ class PFA(nn.Module):
 
     def forward(self, x):
         return self.gpt2(inputs_embeds=x).last_hidden_state
+
+    def trainable_parameters(self):
+        for name, param in self.named_parameters():
+            if param.requires_grad:
+                yield param
+
+# ########### LORA ##############
+# class PFA(nn.Module):
+#     def __init__(self, device="cuda:0", gpt_layers=6, U=1):
+#         super(PFA, self).__init__()
+#         self.gpt2 = GPT2Model.from_pretrained(
+#             "gpt2", output_attentions=True, output_hidden_states=True
+#         )
+#         self.gpt2.h = self.gpt2.h[:gpt_layers]
+#         self.U = U
+#         self.lora_rank = 4 #8
+
+#         # Configure LoRA
+#         self.lora_config = LoraConfig(
+#             r=self.lora_rank,
+#             lora_alpha=16,  # or any other hyperparameter specific to LoRA
+#             lora_dropout=0.1,  # if you want to add dropout to LoRA #0.05
+#             target_modules=["attn.c_attn"],   # Apply LoRA to the attention layers only
+#             bias="none"  # specify whether to train bias parameters
+#         )
+#         self.gpt2 = get_peft_model(self.gpt2, self.lora_config)
+
+#         # Adjust parameter training requirements
+#         for layer_index, layer in enumerate(self.gpt2.h):
+#             for name, param in layer.named_parameters():
+#                 if layer_index < gpt_layers - self.U:
+#                     if "ln" in name or "wpe" in name:
+#                         param.requires_grad = True
+#                     else:
+#                         param.requires_grad = False
+#                 else:
+#                     if "mlp" in name:
+#                         param.requires_grad = False
+#                     else:
+#                         param.requires_grad = True
+
+#     def forward(self, x):
+#         return self.gpt2(inputs_embeds=x).last_hidden_state
+
+#     def trainable_parameters(self):
+#         for name, param in self.named_parameters():
+#             if param.requires_grad:
+#                 yield param
+
+# ########### LORA 2 : Freeze all multihead attention layers and apply LORA last U attention layers ##############
+# class PFA(nn.Module):
+#     def __init__(self, device="cuda:0", gpt_layers=6, U=1):
+#         super(PFA, self).__init__()
+#         self.gpt2 = GPT2Model.from_pretrained(
+#             "gpt2", output_attentions=True, output_hidden_states=True
+#         )
+#         self.gpt2.h = self.gpt2.h[:gpt_layers]
+#         self.U = U
+#         self.lora_rank = 4
+
+#         # Adjust parameter training requirements
+#         for layer_index, layer in enumerate(self.gpt2.h):
+#             for name, param in layer.named_parameters():
+#                 if layer_index < gpt_layers - self.U:
+#                     if "ln" in name or "wpe" in name:
+#                         param.requires_grad = True
+#                     else:
+#                         param.requires_grad = False
+#                 else:
+#                     if "mlp" in name or "attn" in name:
+#                         param.requires_grad = False
+#                     else:
+#                         param.requires_grad = True
+
+#         # Apply LoRA to the frozen attention layers in the last U layers
+#         self.apply_lora_to_frozen_attention_layers()
+
+#     def apply_lora_to_frozen_attention_layers(self):
+#         self.lora_config = LoraConfig(
+#             r=self.lora_rank,
+#             lora_alpha=16,
+#             lora_dropout=0.1,
+#             target_modules=["attn.c_attn"],
+#             bias="none"
+#         )
+
+#         # Apply LoRA only to the frozen attention layers in the last U layers
+#         for layer_index in range(len(self.gpt2.h) - self.U, len(self.gpt2.h)):
+#             layer = self.gpt2.h[layer_index]
+#             for name, param in layer.named_parameters():
+#                 if "attn.c_attn" in name:
+#                     layer = get_peft_model(layer, self.lora_config)
+
+#     def forward(self, x):
+#         return self.gpt2(inputs_embeds=x).last_hidden_state
+
+#     def trainable_parameters(self):
+#         for name, param in self.named_parameters():
+#             if param.requires_grad:
+#                 yield param
+
+# ########### LORA 3 : Freeze all multihead attention layers and apply LORA to all attention layers ##############
+# class PFA(nn.Module):
+#     def __init__(self, device="cuda:0", gpt_layers=6, U=1):
+#         super(PFA, self).__init__()
+#         self.gpt2 = GPT2Model.from_pretrained(
+#             "gpt2", output_attentions=True, output_hidden_states=True
+#         )
+#         self.gpt2.h = self.gpt2.h[:gpt_layers]
+#         self.U = U
+#         self.lora_rank = 4
+
+#         # Adjust parameter training requirements
+#         for layer_index, layer in enumerate(self.gpt2.h):
+#             for name, param in layer.named_parameters():
+#                 if layer_index < gpt_layers - self.U:
+#                     if "ln" in name or "wpe" in name:
+#                         param.requires_grad = True
+#                     else:
+#                         param.requires_grad = False
+#                 else:
+#                     if "mlp" in name or "attn" in name:
+#                         param.requires_grad = False
+#                     else:
+#                         param.requires_grad = True
+
+#         # Apply LoRA to the frozen attention layers in the last U layers
+#         self.apply_lora_to_frozen_attention_layers()
+
+#     def apply_lora_to_frozen_attention_layers(self):
+#         self.lora_config = LoraConfig(
+#             r=self.lora_rank,
+#             lora_alpha=16,
+#             lora_dropout=0.1,
+#             target_modules=["attn.c_attn"],
+#             bias="none"
+#         )
+
+#         # Apply LoRA only to the frozen attention layers
+#         for layer_index, layer in enumerate(self.gpt2.h):
+#             for name, param in layer.named_parameters():
+#                 if "attn.c_attn" in name and not param.requires_grad:
+#                     layer = get_peft_model(layer, self.lora_config)
+
+#     def forward(self, x):
+#         return self.gpt2(inputs_embeds=x).last_hidden_state
+
+#     def trainable_parameters(self):
+#         for name, param in self.named_parameters():
+#             if param.requires_grad:
+#                 yield param
+
+# ########## LORA 4 : Apply LORA to first few frozen attention layers only  (First F attention layers are frozen and the last U attention layers are unfrozen similar to the original STLLM setting) ##############
+# class PFA(nn.Module):
+#     def __init__(self, device="cuda:0", gpt_layers=6, U=1):
+#         super(PFA, self).__init__()
+#         self.gpt2 = GPT2Model.from_pretrained(
+#             "gpt2", output_attentions=True, output_hidden_states=True
+#         )
+#         self.gpt2.h = self.gpt2.h[:gpt_layers]
+#         self.U = U
+#         self.lora_rank = 4
+
+#         for layer_index, layer in enumerate(self.gpt2.h):
+#             for name, param in layer.named_parameters():
+#                 if layer_index < gpt_layers - self.U:
+#                     if "ln" in name or "wpe" in name:
+#                         param.requires_grad = True
+#                     else:
+#                         param.requires_grad = False
+#                 else:
+#                     if "mlp" in name:
+#                         param.requires_grad = False
+#                     else:
+#                         param.requires_grad = True
+
+#         # Apply LoRA to the frozen attention layers in the last U layers
+#         self.apply_lora_to_frozen_attention_layers()
+
+#     def apply_lora_to_frozen_attention_layers(self):
+#         self.lora_config = LoraConfig(
+#             r=self.lora_rank,
+#             lora_alpha=16,
+#             lora_dropout=0.1,
+#             target_modules=["attn.c_attn"],
+#             bias="none"
+#         )
+
+#         # Apply LoRA only to the frozen attention layers
+#         for layer_index, layer in enumerate(self.gpt2.h):
+#             for name, param in layer.named_parameters():
+#                 if "attn.c_attn" in name and not param.requires_grad:
+#                     layer = get_peft_model(layer, self.lora_config)
+
+#     def forward(self, x):
+#         return self.gpt2(inputs_embeds=x).last_hidden_state
+
+#     def trainable_parameters(self):
+#         for name, param in self.named_parameters():
+#             if param.requires_grad:
+#                 yield param
 
 class GPT4ST(nn.Module):
     def __init__(
@@ -121,7 +362,7 @@ class GPT4ST(nn.Module):
         self.node_emb = nn.Parameter(torch.empty(self.num_nodes, gpt_channel))
         nn.init.xavier_uniform_(self.node_emb)
 
-        self.gnn_retriever = GNNRetriever(input_dim = self.input_dim, hidden_dim=64, output_dim=1, nheads = 8, gnn_type='gat')
+        self.gnn_retriever = GNNRetriever(input_dim = self.input_dim, hidden_dim=64, output_dim=1, nheads=8, gnn_type='gat')
         self.in_layer = nn.Conv2d(gpt_channel*4, to_gpt_channel, kernel_size=(1, 1))        
 
         # regression
@@ -195,6 +436,6 @@ class GPT4ST(nn.Module):
 
         # regression
         outputs = self.regression_layer(outputs)  
-        print(outputs.shape) #[64, 12, 250, 1]
+        #print(outputs.shape) #[64, 12, 250, 1]
 
         return outputs
