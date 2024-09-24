@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
 import torch_geometric
 import torch.nn.functional as F
 from transformers import GPT2Model
@@ -63,10 +62,10 @@ class PFA(nn.Module):
                     else:
                         param.requires_grad = False
                 else:
-                    if "mlp" in name:
-                        param.requires_grad = False
-                    else:
-                        param.requires_grad = True
+                    # if "mlp" in name:
+                    #     param.requires_grad = False
+                    # else:
+                    param.requires_grad = True
 
     def forward(self, x):
         return self.gpt2(inputs_embeds=x).last_hidden_state
@@ -113,6 +112,10 @@ class GPT4ST(nn.Module):
         self.Temb = TemporalEmbedding(time, gpt_channel)
         self.node_emb = nn.Parameter(torch.empty(self.num_nodes, gpt_channel))
         nn.init.xavier_uniform_(self.node_emb)
+
+        self.feature_fusion = nn.Conv2d(
+            gpt_channel * 4, to_gpt_channel, kernel_size=(1, 1)
+        )
         
         # LayerNorm, FFN, and regression layers
         self.layer_norm1 = nn.LayerNorm(gpt_channel)
@@ -173,6 +176,9 @@ class GPT4ST(nn.Module):
         # print(ffn_out.shape)
         # Fusion
         data_st = torch.cat([token_emb] + node_emb + [tem_emb] + [ffn_out], dim=1)
+        data_st = data_st.unsqueeze(-1) # B E S 1
+        data_st = self.feature_fusion(data_st)
+        data_st = data_st.squeeze(-1)
         data_st = data_st.permute(0, 2, 1)
        
         # GPT

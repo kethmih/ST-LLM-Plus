@@ -113,6 +113,10 @@ class GPT4ST(nn.Module):
         self.Temb = TemporalEmbedding(time, gpt_channel)
         self.node_emb = nn.Parameter(torch.empty(self.num_nodes, gpt_channel))
         nn.init.xavier_uniform_(self.node_emb)
+
+        self.feature_fusion = nn.Conv2d(
+            gpt_channel * 3, to_gpt_channel, kernel_size=(1, 1)
+        )
         
         # LayerNorm, FFN, and regression layers
         self.layer_norm1 = nn.LayerNorm(to_gpt_channel)
@@ -146,35 +150,38 @@ class GPT4ST(nn.Module):
         input_data = data.permute(0,3,2,1)
         input_data = input_data.transpose(1, 2).contiguous()
         input_data = (input_data.view(B, S, -1).transpose(1, 2).unsqueeze(-1))
-        token_emb = self.start_conv(input_data).squeeze(-1) # B E S
+        token_emb = self.start_conv(input_data).squeeze(-1) # B C S
 
         # print(input_data.shape)
         # print(ffn_out.shape)
         # Fusion
-        data_st = torch.cat([token_emb] + node_emb + [tem_emb], dim=1)
-        data_st = data_st.permute(0, 2, 1) # B S E
-       
+        data_st = torch.cat([token_emb] + node_emb + [tem_emb], dim=1) # B E S
+        data_st = data_st.unsqueeze(-1) # B E S 1
+        data_st = self.feature_fusion(data_st)
+        data_st = data_st.squeeze(-1)
+        data_st = data_st.permute(0, 2, 1)
+
         # Layer norm 1
         # ln1_in = token_emb.permute(0, 2, 1) # B S E
-        data_st_nm1 = self.layer_norm1(data_st)
-        ln2_out = data_st_nm1.permute(0, 2, 1)  # B E S
+        data_st_lm1 = self.layer_norm1(data_st)
+        ln1_out = data_st_lm1.permute(0, 2, 1)  # B E S
 
         # GAT forward pass
         edge_index = torch_geometric.utils.dense_to_sparse(self.adj_mx)[0].to(self.device)
         gat_out = []
         for i in range(B):
-            gat_out.append(self.gat(ln2_out[i].permute(1, 0), edge_index))  # Apply GAT for each sample in batch
+            gat_out.append(self.gat(ln1_out[i].permute(1, 0), edge_index))  # Apply GAT for each sample in batch
         gat_out = torch.stack(gat_out, dim=0)
 
         # Res connection
         gat_out_add = gat_out + data_st  # B S E
         
         # Layer norm 2
-        skip_output_2 = self.layer_norm2(gat_out_add)
+        ln2_out = self.layer_norm2(gat_out_add)
         
         # Feed-forward network
-        ffn_out = self.ffn(skip_output_2) + gat_out_add
-        ffn_out = ffn_out.permute(0, 2, 1)
+        ffn_out = self.ffn(ln2_out) + gat_out_add
+        # ffn_out = ffn_out.permute(0, 2, 1)
 
         # GPT
         gpt_out = self.gpt(ffn_out)
