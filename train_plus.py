@@ -7,14 +7,12 @@ import util
 import os
 from util import *
 import random
-from model_ST_LLM_Plus import GAttn
+from model.ST_LLM_plus import ST_LLM
 from ranger21 import Ranger
-from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
-
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:180'
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--device", type=str, default="cuda:6", help="")
+parser.add_argument("--device", type=str, default="cuda:7", help="")
 parser.add_argument("--data", type=str, default="bike_drop", help="data path")
 parser.add_argument("--batch_size", type=int, default=64, help="batch size")
 parser.add_argument("--lrate", type=float, default=1e-3, help="learning rate")
@@ -25,9 +23,6 @@ parser.add_argument("--input_len", type=int, default=12, help="input_len")
 parser.add_argument("--output_len", type=int, default=12, help="out_len")
 parser.add_argument("--llm_layer", type=int, default=1, help="llm layer")
 parser.add_argument("--U", type=int, default=1, help="unforzen layer")
-parser.add_argument("--channel", type=int, default=64, help="hidden dimension of gat")
-parser.add_argument("--head", type=int, default=8, help="head of gat")
-parser.add_argument("--dropout_rate", type=float, default=0.1, help="dropout rate of model")
 parser.add_argument("--print_every", type=int, default=50, help="")
 parser.add_argument(
     "--wdecay", type=float, default=0.0001, help="weight decay rate"
@@ -44,7 +39,6 @@ parser.add_argument(
     default=100,
     help="quit if no improvement after this many iterations"
     )
-
 args = parser.parse_args()
 adj_mx = load_graph_data(f"data/{args.data}/adj_mx.pkl") # nyc
 
@@ -59,24 +53,17 @@ class trainer:
         output_len,
         llm_layer, 
         U,
-        channel,
-        head,
-        dropout_rate,
-        lrate,        
+        lrate,
         wdecay,
         device
     ):
-        self.model = GAttn(
-            device, adj_mx, input_dim, num_nodes, input_len, output_len, llm_layer, U, channel, head, dropout_rate
+        self.model = ST_LLM(
+            device, adj_mx, input_dim, num_nodes, input_len, output_len, llm_layer, U
         )
         self.model.to(device)
         
-        # self.optimizer = optim.Adam(self.model.parameters(), lr=lrate, weight_decay=wdecay)
         self.optimizer = Ranger(self.model.parameters(), lr=lrate, weight_decay=wdecay)
-        
-        # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=args.epochs, eta_min=1e-6, verbose=True)
-        # self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=0.5, patience=10, verbose=True) # overfit for llm predictor
-        # self.scheduler = StepLR(self.optimizer, step_size=10, gamma=0.1, verbose=True)
+        # self.optimizer = optim.Adam(self.model.parameters(), lr=lrate, weight_decay=wdecay)
         
         self.loss = util.MAE_torch
         self.scaler = scaler
@@ -142,7 +129,7 @@ def main():
 
     elif args.data == "taxi_pick":
         args.data = "data//" + args.data
-        args.num_nodes = 266     
+        args.num_nodes = 266    
     
     device = torch.device(args.device)
     dataloader = util.load_dataset(
@@ -174,9 +161,6 @@ def main():
         args.output_len,
         args.llm_layer,
         args.U,
-        args.channel,
-        args.head,
-        args.dropout_rate,
         args.lrate,
         args.wdecay,
         device
@@ -202,18 +186,6 @@ def main():
             train_rmse.append(metrics[2])
             train_wmape.append(metrics[3])
 
-            # if iter % args.print_every == 0:
-                # log = "Iter: {:03d}, Train Loss: {:.4f}, Train RMSE: {:.4f}, Train MAPE: {:.4f}, Train WMAPE: {:.4f}"
-                # print(
-                #     log.format(
-                #         iter,
-                #         train_loss[-1],
-                #         train_rmse[-1],
-                #         train_mape[-1],
-                #         train_wmape[-1],
-                #     ),
-                #     flush=True,
-                # )
         t2 = time.time()
         log = "Epoch: {:03d}, Training Time: {:.4f} secs"
         print(log.format(i, (t2 - t1)))
@@ -274,7 +246,6 @@ def main():
             log.format(i, mtrain_loss, mtrain_rmse, mtrain_mape, mtrain_wmape),
             flush=True,
         )
-        
         log = "Epoch: {:03d}, Valid Loss: {:.4f}, Valid RMSE: {:.4f}, Valid MAPE: {:.4f}, Valid WMAPE: {:.4f}"
         print(
             log.format(i, mvalid_loss, mvalid_rmse, mvalid_mape, mvalid_wmape),
@@ -283,7 +254,7 @@ def main():
 
         if mvalid_loss < loss:
             print("###Update tasks appear###")
-            if i <= 10:
+            if i <= 100:
                 # It is not necessary to print the results of the test set when epoch is less than 100, because the model has not yet converged.
                 loss = mvalid_loss
                 torch.save(engine.model.state_dict(), path + "best_model.pth")
@@ -316,29 +287,17 @@ def main():
                     pred = scaler.inverse_transform(yhat[:, :, j])
                     real = realy[:, :, j]
                     metrics = util.metric(pred, real)
+
                     amae.append(metrics[0])
                     amape.append(metrics[1])
                     armse.append(metrics[2])
                     awmape.append(metrics[3])
 
-                # log = "On average horizons, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}"
-                # print(
-                #     log.format(
-                #         np.mean(amae), np.mean(armse), np.mean(amape), np.mean(awmape)
-                #     )
-                # )
-
                 if np.mean(amae) < test_log:
                     test_log = np.mean(amae)
-                    torch.save(engine.model.state_dict(), path + "best_model.pth")
-                    epochs_since_best_mse = 0
-                    print("Test low! Updating! Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}\n".format(np.mean(amae), np.mean(armse), np.mean(amape), np.mean(awmape)), end="")
-                    print("Test low! Updating! Valid Loss: {:.4f}".format(mvalid_loss), end=", ")
-
-                    bestid = i
-                    print("epoch: ", i)
+                    print(f"Test low! Updating! Test Loss: {test_log:.4f}, Valid Loss: {mvalid_loss:.4f}, epoch: {i}")
                 else:
-                    epochs_since_best_mse += 1
+                    epochs_since_best_mae += 1
                     print("No update")
 
         else:
@@ -348,18 +307,8 @@ def main():
         train_csv = pd.DataFrame(result)
         train_csv.round(8).to_csv(f"{path}/train.csv")
 
-        # old_lr = engine.optimizer.param_groups[0]['lr']
-        # # engine.scheduler.step()
-        # engine.scheduler.step(mvalid_loss)
-        # new_lr = engine.optimizer.param_groups[0]['lr']
-
-        # if new_lr != old_lr:
-        #     print(f"Learning rate updated: {old_lr} -> {new_lr}")
-        # else:
-        #     print(f"Learning rate remains at: {new_lr}")
-
         # Early stop
-        if epochs_since_best_mae >= args.es_patience and i >= args.epochs//2:
+        if epochs_since_best_mae >= args.es_patience and i >= 200:
             break
 
     # Output consumption
@@ -370,7 +319,6 @@ def main():
     print("Training ends")
     print("The epoch of the best result：", bestid)
     print("The valid loss of the best model", str(round(his_loss[bestid - 1], 4)))
-
 
     engine.model.load_state_dict(torch.load(path + "best_model.pth"))
     outputs = []
@@ -398,8 +346,8 @@ def main():
         pred = scaler.inverse_transform(yhat[:, :, i])
         real = realy[:, :, i]
         metrics = util.metric(pred, real)
-        # log = "Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}"
-        # print(log.format(i + 1, metrics[0], metrics[2], metrics[1], metrics[3]))
+        log = "Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}"
+        print(log.format(i + 1, metrics[0], metrics[2], metrics[1], metrics[3]))
 
         test_m = dict(
             test_loss=np.mean(metrics[0]),
