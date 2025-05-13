@@ -30,6 +30,10 @@ nohup python train.py --data taxi_pick > your_log_name.log &
 
 ## BibTex
 > If you find our work useful in your research. Please consider giving a star ⭐ and citation 📚:
+
+## Further Reading
+[**Spatial-Temporal Large Language Model for Traffic Prediction**](https://arxiv.org/abs/2401.10134), in *MDM* 2024.
+[\[GitHub Repo\]](https://github.com/ChenxiLiu-HNU/ST-LLM/tree/main)
 ```bibtex
 @inproceedings{liu2024spatial,
   title={Spatial-Temporal Large Language Model for Traffic Prediction},
@@ -39,37 +43,5 @@ nohup python train.py --data taxi_pick > your_log_name.log &
 }
 ```
 
-## Further Reading
-[**TimeCMA: Towards LLM-Empowered Multivariate Time Series Forecasting via Cross-Modality Alignment**](https://arxiv.org/abs/2406.01638), in *AAAI* 2025.
-[\[GitHub Repo\]](https://github.com/ChenxiLiu-HNU/TimeCMA)
-
-**Authors**: Chenxi Liu, Qianxiong Xu, Hao Miao, Sun Yang, Lingzheng Zhang, Cheng Long, Ziyue Li, Rui Zhao
-
-```bibtex
-@inproceedings{liu2024timecma,
-  title={{TimeCMA}: Towards LLM-Empowered Multivariate Time Series Forecasting via Cross-Modality Alignment},
-  author={Liu, Chenxi and Xu, Qianxiong and Miao, Hao and Yang, Sun and Zhang, Lingzheng and Long, Cheng and Li, Ziyue and Zhao, Rui},
-  booktitle={AAAI},
-  year={2025}
-}
-```
-
-[**Efficient Multivariate Time Series Forecasting via Calibrated Language Models with Privileged Knowledge Distillation**](https://arxiv.org/abs/2505.02138), in *ICDE* 2025.
-[\[GitHub Repo\]](https://github.com/ChenxiLiu-HNU/TimeKD)
-
-**Authors**: Chenxi Liu, Hao Miao, Qianxiong Xu, Shaowen Zhou, Cheng Long, Yan Zhao, Ziyue Li, Rui Zhao
-
-```bibtex
-@inproceedings{liu2025timekd,
-  title={Efficient Multivariate Time Series Forecasting via Calibrated Language Models with Privileged Knowledge Distillation},
-  author={Chenxi Liu and Hao Miao and Qianxiong Xu and Shaowen Zhou and Cheng Long and Yan Zhao and Ziyue Li and Rui Zhao},
-  booktitle    = {ICDE},
-  year={2025}
-}
-```
-
-## Acknowledgement
-Our implementation adapts [OFA](https://github.com/DAMO-DI-ML/NeurIPS2023-One-Fits-All) as the code base and has extensively modified it for our purposes. We are grateful to the authors for providing their implementations and related resources.
-
 ## Contact Us
-For inquiries or further assistance, contact us at [chenxi.liu@ntu.edu.sg](mailto:chenxi.liu@ntu.edu.sg) or open an issue on this repository.
+For inquiries or further assistance, contact us at [chenxi.liu@ntu.edu.sg](mailto:chenxi.liu@ntu.edu.sg) and [kethmihi001@e.ntu.edu.sg](mailto:kethmihi001@e.ntu.edu.sg), or open an issue on this repository.
