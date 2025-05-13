@@ -7,7 +7,7 @@ import util
 import os
 from util import *
 import random
-from model.model_GAdj import GAttn
+from model_ST_LLM_Plus import GAttn
 from ranger21 import Ranger
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 
