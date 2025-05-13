@@ -44,4 +44,4 @@ nohup python train_plus.py --data taxi_pick > your_log_name.log &
 ```
 
 ## Contact Us
-For inquiries or further assistance, contact us at [chenxi.liu@ntu.edu.sg](mailto:chenxi.liu@ntu.edu.sg) and [kethmihi001@e.ntu.edu.sg](mailto:kethmihi001@e.ntu.edu.sg), or open an issue on this repository.
+For inquiries or further assistance, contact us at [kethmihi001@e.ntu.edu.sg](mailto:kethmihi001@e.ntu.edu.sg) and [chenxi.liu@ntu.edu.sg](mailto:chenxi.liu@ntu.edu.sg), or open an issue on this repository.
