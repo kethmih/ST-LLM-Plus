@@ -25,7 +25,7 @@ If you need the original datasets, please refer to the [ESG](https://github.com/
 
 ```bash
 CUDA_VISIBLE_DEVICES=0
-nohup python train.py --data taxi_pick > your_log_name.log &
+nohup python train_plus.py --data taxi_pick > your_log_name.log &
 ```
 
 ## BibTex
