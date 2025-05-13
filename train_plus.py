@@ -46,7 +46,6 @@ parser.add_argument(
     )
 
 args = parser.parse_args()
-# _, _, adj_mx = load_graph_data("data/PEMS08/adj_mx.pkl") # pems
 adj_mx = load_graph_data(f"data/{args.data}/adj_mx.pkl") # nyc
 
 class trainer:
@@ -129,23 +128,7 @@ def main():
     seed_it(6666)
     data = args.data
 
-    if args.data == "PEMS08":
-        args.data = "data//" + args.data
-        args.num_nodes = 170
-
-    elif args.data == "PEMS03":
-        args.data = "data//" + args.data
-        args.num_nodes = 358
-
-    elif args.data == "PEMS04":
-        args.data = "data//" + args.data
-        args.num_nodes = 307
-
-    elif args.data == "PEMS07":
-        args.data = "data//" + args.data
-        args.num_nodes = 883
-
-    elif args.data == "bike_drop":
+    if args.data == "bike_drop":
         args.data = "data//" + args.data
         args.num_nodes = 250
     
@@ -159,15 +142,7 @@ def main():
 
     elif args.data == "taxi_pick":
         args.data = "data//" + args.data
-        args.num_nodes = 266
-
-    elif args.data == "METR-LA":
-        args.data = "data//" + args.data
-        args.num_nodes = 207   
-
-    elif args.data == "PEMS-BAY":
-        args.data = "data//" + args.data
-        args.num_nodes = 325        
+        args.num_nodes = 266     
     
     device = torch.device(args.device)
     dataloader = util.load_dataset(
