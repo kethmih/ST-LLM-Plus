@@ -7,7 +7,7 @@ import util
 import os
 from util import *
 import random
-from model.ST_LLM_plus import ST_LLM
+from model_ST_LLM_plus import ST_LLM
 from ranger21 import Ranger
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:180'
 
