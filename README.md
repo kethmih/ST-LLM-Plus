@@ -29,7 +29,8 @@ nohup python train_plus.py --data taxi_pick > your_log_name.log &
 ```
 
 ## BibTex
-> If you find our work useful in your research. Please consider giving a star ⭐ and citation 📚:
+If you find our work useful in your research. Please consider giving a star ⭐ and citation 📚:
+
 ```bibtex
 @ARTICLE{11005661,
   author={Liu, Chenxi and Hettige, Kethmi Hirushini and Xu, Qianxiong and Long, Cheng and Xiang, Shili and Cong, Gao and Li, Ziyue and Zhao, Rui},
