@@ -31,19 +31,6 @@ nohup python train_plus.py --data taxi_pick > your_log_name.log &
 ## BibTex
 If you find our work useful in your research. Please consider giving a star ⭐ and citation 📚:
 
-```bibtex
-@ARTICLE{11005661,
-  author={Liu, Chenxi and Hettige, Kethmi Hirushini and Xu, Qianxiong and Long, Cheng and Xiang, Shili and Cong, Gao and Li, Ziyue and Zhao, Rui},
-  journal={IEEE Transactions on Knowledge and Data Engineering}, 
-  title={ST-LLM+: Graph Enhanced Spatio-Temporal Large Language Models for Traffic Prediction}, 
-  year={2025},
-  volume={},
-  number={},
-  pages={1-14},
-  keywords={Time series analysis;Predictive models;Forecasting;Large language models;Adaptation models;Data models;Computational modeling;Training;Electronic mail;Attention mechanisms;Traffic Prediction;Large Language Models;Spatio-Temporal Data},
-  doi={10.1109/TKDE.2025.3570705}}
-```
-
 ## Further Reading
 [**Spatial-Temporal Large Language Model for Traffic Prediction**](https://arxiv.org/abs/2401.10134), in *MDM* 2024.
 [\[GitHub Repo\]](https://github.com/ChenxiLiu-HNU/ST-LLM/tree/main)
