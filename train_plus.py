@@ -21,7 +21,7 @@ parser.add_argument("--input_dim", type=int, default=3, help="input_dim")
 parser.add_argument("--num_nodes", type=int, default=250, help="number of nodes")
 parser.add_argument("--input_len", type=int, default=12, help="input_len")
 parser.add_argument("--output_len", type=int, default=12, help="out_len")
-parser.add_argument("--llm_layer", type=int, default=1, help="llm layer")
+parser.add_argument("--llm_layer", type=int, default=6, help="llm layer")
 parser.add_argument("--U", type=int, default=1, help="unforzen layer")
 parser.add_argument("--print_every", type=int, default=50, help="")
 parser.add_argument(
