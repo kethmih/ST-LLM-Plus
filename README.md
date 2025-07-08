@@ -36,10 +36,10 @@ If you find our work useful in your research. Please consider giving a star ⭐ 
   journal={IEEE Transactions on Knowledge and Data Engineering}, 
   title={ST-LLM+: Graph Enhanced Spatio-Temporal Large Language Models for Traffic Prediction}, 
   year={2025},
-  volume={},
-  number={},
-  pages={1-14},
-  keywords={Time series analysis;Predictive models;Forecasting;Large language models;Adaptation models;Data models;Computational modeling;Training;Electronic mail;Attention mechanisms;Traffic Prediction;Large Language Models;Spatio-Temporal Data},
+  volume={37},
+  number={8},
+  pages={4846-4859},
+  keywords={Time series analysis;Predictive models;Forecasting;Large language models;Adaptation models;Data models;Computational modeling;Training;Electronic mail;Attention mechanisms;Traffic prediction;large language models;spatio-temporal data},
   doi={10.1109/TKDE.2025.3570705}}
 ```
 
